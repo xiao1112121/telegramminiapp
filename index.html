@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <title>Quản lý nút</title>
+  <style>
+    body { font-family: sans-serif; padding: 20px; background: #f1f1f1; }
+    input, select { width: 100%; padding: 10px; margin-bottom: 12px; }
+    button { padding: 10px 20px; margin-right: 10px; border: none; font-weight: bold; }
+    .danger { background-color: #dc3545; color: white; }
+    .success { background-color: #28a745; color: white; }
+  </style>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+</head>
+<body>
+  <h2>Quản lý nút</h2>
+
+  <!-- Danh sách nút -->
+  <div id="list"></div>
+
+  <!-- Nút Thêm -->
+  <button id="add" onclick="openForm()">Thêm</button>
+
+  <!-- FORM ẩn để nhập mới -->
+  <div id="form" style="display:none; margin-top:20px;">
+    <select id="type">
+      <option value="link">Liên kết</option>
+      <option value="popup">Cửa sổ bật lên</option>
+      <option value="alert">Cảnh báo</option>
+      <option value="comment">Bình luận</option>
+      <option value="share">Chia sẻ</option>
+      <option value="copy">Sao chép</option>
+    </select>
+    <input type="text" id="title" placeholder="Tên nút (vd: Trang chủ)">
+    <input type="text" id="link" placeholder="Liên kết / Nội dung">
+    <button class="success" onclick="saveItem()">Lưu</button>
+    <button class="danger" onclick="cancelForm()">Huỷ</button>
+  </div>
+
+  <!-- Nút hoàn tất -->
+  <button class="success" style="width:100%; margin-top:30px;" onclick="finish()">Hoàn tất</button>
+
+  <script>
+    const tg = window.Telegram.WebApp;
+    tg.expand();
+
+    let items = [];
+
+    const listDiv = document.getElementById('list');
+
+    function renderList() {
+      listDiv.innerHTML = '';
+      items.forEach((it, idx) => {
+        const row = document.createElement('div');
+        row.style.display = 'flex';
+        row.style.marginBottom = '8px';
+
+        const btn = document.createElement('button');
+        btn.style.flex = '1';
+        btn.textContent = idx + 1;
+        btn.className = 'success';
+
+        const plus = document.createElement('button');
+        plus.textContent = '+';
+        plus.onclick = () => editItem(idx);
+
+        row.appendChild(btn);
+        row.appendChild(plus);
+        listDiv.appendChild(row);
+      });
+    }
+
+    function openForm() {
+      document.getElementById('form').style.display = 'block';
+      document.getElementById('add').style.display = 'none';
+    }
+
+    function cancelForm() {
+      document.getElementById('form').style.display = 'none';
+      document.getElementById('add').style.display = 'inline-block';
+    }
+
+    function saveItem() {
+      const type = document.getElementById('type').value;
+      const title = document.getElementById('title').value;
+      const link = document.getElementById('link').value;
+      if (!title) return alert('Vui lòng nhập tên nút');
+      items.push({ type, title, link });
+      renderList();
+      cancelForm();
+    }
+
+    function editItem(idx) {
+      const it = items[idx];
+      document.getElementById('type').value = it.type;
+      document.getElementById('title').value = it.title;
+      document.getElementById('link').value = it.link;
+      items.splice(idx,1);
+      renderList();
+      openForm();
+    }
+
+    function finish() {
+      tg.sendData(JSON.stringify(items));
+    }
+
+    // init blank list
+    renderList();
+  </script>
+</body>
+</html>

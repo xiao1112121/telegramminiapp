@@ -2,104 +2,181 @@
 <html lang="vi">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Quản lý nút</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Trợ lý kênh</title>
   <style>
     body {
-      background: #f5f5f5;
-      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       margin: 0;
-      padding: 20px;
+      font-family: 'Segoe UI', sans-serif;
+      background: #f2f2f2;
     }
 
     .container {
-      max-width: 400px;
-      margin: 60px auto;
-      background: #fff;
-      padding: 30px;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 30px;
-      font-size: 24px;
-    }
-
-    label {
-      display: block;
-      margin-bottom: 6px;
-      font-weight: 600;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 12px;
-      margin-bottom: 20px;
-      border-radius: 8px;
-      border: 1px solid #ccc;
-      font-size: 14px;
-    }
-
-    .buttons {
       display: flex;
+      flex-direction: column;
+      height: 100vh;
       justify-content: space-between;
-      gap: 10px;
     }
 
-    .buttons button,
-    .submit {
+    .header {
+      padding: 16px;
+      font-size: 18px;
+      background: #ffffff;
+      border-bottom: 1px solid #ccc;
+    }
+
+    main {
       flex: 1;
-      padding: 12px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    footer {
+      padding: 10px;
+      background: #ffffff;
+      border-top: 1px solid #ccc;
+    }
+
+    .btn {
+      padding: 10px 18px;
       border: none;
-      border-radius: 8px;
+      border-radius: 6px;
       font-weight: bold;
-      font-size: 14px;
+      font-size: 16px;
       cursor: pointer;
     }
 
-    .save {
-      background: #28a745;
-      color: white;
+    .btn-add {
+      background-color: #e3f2fd;
+      color: #007aff;
     }
 
-    .cancel {
-      background: #dc3545;
-      color: white;
-    }
-
-    .submit {
-      background: #28a745;
-      color: white;
-      margin-top: 20px;
+    .btn-done {
       width: 100%;
+      background-color: #28a745;
+      color: white;
+    }
+
+    .popup {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0,0,0,0.6);
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .popup.hidden {
+      display: none;
+    }
+
+    .popup-content {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      width: 90%;
+      max-width: 380px;
+      position: relative;
+    }
+
+    .popup-close {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      cursor: pointer;
+    }
+
+    .popup-content h3 {
+      margin-top: 0;
+    }
+
+    .popup-content label {
+      display: block;
+      margin-top: 10px;
+      font-weight: 500;
+    }
+
+    .popup-content input,
+    .popup-content select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+    }
+
+    .popup-actions {
+      display: flex;
+      justify-content: space-between;
+      margin-top: 20px;
+    }
+
+    .btn-danger {
+      background-color: #dc3545;
+      color: white;
+    }
+
+    .btn-success {
+      background-color: #28a745;
+      color: white;
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <h1>Quản lý nút</h1>
-    
-    <label for="type">Loại nút</label>
-    <select id="type">
-      <option>Liên kết</option>
-      <option>Tải app</option>
-      <option>Gọi điện</option>
-    </select>
+    <header class="header">
+      <h2>Trợ lý kênh</h2>
+    </header>
 
-    <label for="title">Tiêu đề nút</label>
-    <input type="text" id="title" placeholder="Nhập tiêu đề">
+    <main>
+      <button id="btnAdd" class="btn btn-add">➕ Thêm</button>
+    </main>
 
-    <label for="link">Đường dẫn</label>
-    <input type="text" id="link" placeholder="https://abc.com/...">
-
-    <div class="buttons">
-      <button class="save">Lưu</button>
-      <button class="cancel">Huỷ</button>
-    </div>
-
-    <button class="submit">Hoàn tất</button>
+    <footer>
+      <button id="btnDone" class="btn btn-done">✅ Hoàn tất</button>
+    </footer>
   </div>
+
+  <div id="popup" class="popup hidden">
+    <div class="popup-content">
+      <h3>Quản lý nút</h3>
+      <span id="popupClose" class="popup-close">✖</span>
+
+      <label for="actionType">Loại hành động</label>
+      <select id="actionType">
+        <option>🔗 Liên kết</option>
+        <option>📤 Mở pop-up</option>
+        <option>⚠️ Cảnh báo</option>
+        <option>💬 Bình luận</option>
+        <option>📤 Chia sẻ</option>
+        <option>📋 Sao chép</option>
+      </select>
+
+      <label for="btnLabel">Nhãn nút</label>
+      <input type="text" id="btnLabel" placeholder="Ví dụ: Tải app" />
+
+      <label for="btnValue">Giá trị</label>
+      <input type="text" id="btnValue" placeholder="VD: https://example.com" />
+
+      <div class="popup-actions">
+        <button class="btn btn-danger">🗑️ Xóa</button>
+        <button class="btn btn-success">✅ Xong</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    document.getElementById("btnAdd").onclick = function () {
+      document.getElementById("popup").classList.remove("hidden");
+    };
+
+    document.getElementById("popupClose").onclick = function () {
+      document.getElementById("popup").classList.add("hidden");
+    };
+  </script>
 </body>
 </html>

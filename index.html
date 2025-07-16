@@ -27,9 +27,48 @@
 
     main {
       flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+    }
+
+    .add-section {
+      text-align: center;
+      margin-bottom: 20px;
+    }
+
+    .buttons-list {
+      margin-top: 20px;
+    }
+
+    .button-item {
+      background: white;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      padding: 12px;
+      margin-bottom: 10px;
       display: flex;
-      justify-content: center;
+      justify-content: space-between;
       align-items: center;
+    }
+
+    .button-info {
+      flex: 1;
+    }
+
+    .button-label {
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .button-url {
+      font-size: 12px;
+      color: #666;
+      word-break: break-all;
+    }
+
+    .button-actions {
+      display: flex;
+      gap: 8px;
     }
 
     footer {
@@ -56,6 +95,20 @@
       width: 100%;
       background-color: #28a745;
       color: white;
+    }
+
+    .btn-edit {
+      background-color: #ffc107;
+      color: #333;
+      font-size: 12px;
+      padding: 4px 8px;
+    }
+
+    .btn-delete {
+      background-color: #dc3545;
+      color: white;
+      font-size: 12px;
+      padding: 4px 8px;
     }
 
     .popup {
@@ -88,6 +141,7 @@
       right: 10px;
       top: 10px;
       cursor: pointer;
+      font-size: 18px;
     }
 
     .popup-content h3 {
@@ -107,6 +161,7 @@
       margin-top: 5px;
       border: 1px solid #ccc;
       border-radius: 5px;
+      box-sizing: border-box;
     }
 
     .popup-actions {
@@ -124,59 +179,267 @@
       background-color: #28a745;
       color: white;
     }
+
+    .empty-state {
+      text-align: center;
+      color: #666;
+      margin-top: 40px;
+    }
   </style>
 </head>
 <body>
   <div class="container">
     <header class="header">
-      <h2>Trợ lý kênh</h2>
+      <h2>Trợ lý tạo nút</h2>
     </header>
 
     <main>
-      <button id="btnAdd" class="btn btn-add">➕ Thêm</button>
+      <div class="add-section">
+        <button id="btnAdd" class="btn btn-add">➕ Thêm nút</button>
+      </div>
+
+      <div class="buttons-list" id="buttonsList">
+        <div class="empty-state" id="emptyState">
+          Chưa có nút nào. Nhấn "Thêm nút" để bắt đầu.
+        </div>
+      </div>
     </main>
 
     <footer>
-      <button id="btnDone" class="btn btn-done">✅ Hoàn tất</button>
+      <button id="btnDone" class="btn btn-done">✅ Hoàn tất (<span id="buttonCount">0</span>)</button>
     </footer>
   </div>
 
   <div id="popup" class="popup hidden">
     <div class="popup-content">
-      <h3>Quản lý nút</h3>
+      <h3 id="popupTitle">Thêm nút mới</h3>
       <span id="popupClose" class="popup-close">✖</span>
 
       <label for="actionType">Loại hành động</label>
       <select id="actionType">
-        <option>🔗 Liên kết</option>
-        <option>📤 Mở pop-up</option>
-        <option>⚠️ Cảnh báo</option>
-        <option>💬 Bình luận</option>
-        <option>📤 Chia sẻ</option>
-        <option>📋 Sao chép</option>
+        <option value="url">🔗 Liên kết</option>
+        <option value="url">📤 Mở trang web</option>
+        <option value="url">💬 Kênh Telegram</option>
+        <option value="url">🤖 Bot Telegram</option>
       </select>
 
-      <label for="btnLabel">Nhãn nút</label>
-      <input type="text" id="btnLabel" placeholder="Ví dụ: Tải app" />
+      <label for="btnLabel">Tên nút</label>
+      <input type="text" id="btnLabel" placeholder="Ví dụ: Tham gia kênh" />
 
-      <label for="btnValue">Giá trị</label>
-      <input type="text" id="btnValue" placeholder="VD: https://example.com" />
+      <label for="btnValue">Liên kết</label>
+      <input type="text" id="btnValue" placeholder="https://t.me/example hoặc https://website.com" />
 
       <div class="popup-actions">
-        <button class="btn btn-danger">🗑️ Xóa</button>
-        <button class="btn btn-success">✅ Lưu</button>
+        <button class="btn btn-danger" id="btnDelete" style="display: none;">🗑️ Xóa</button>
+        <button class="btn btn-success" id="btnSave">✅ Lưu</button>
       </div>
     </div>
   </div>
 
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
-    document.getElementById("btnAdd").onclick = function () {
-      document.getElementById("popup").classList.remove("hidden");
+    // Khởi tạo Telegram WebApp
+    let tg = window.Telegram.WebApp;
+    tg.expand();
+
+    // Dữ liệu nút
+    let buttons = [];
+    let editingIndex = -1;
+
+    // DOM elements
+    const btnAdd = document.getElementById("btnAdd");
+    const btnDone = document.getElementById("btnDone");
+    const popup = document.getElementById("popup");
+    const popupClose = document.getElementById("popupClose");
+    const btnSave = document.getElementById("btnSave");
+    const btnDelete = document.getElementById("btnDelete");
+    const buttonsList = document.getElementById("buttonsList");
+    const emptyState = document.getElementById("emptyState");
+    const buttonCount = document.getElementById("buttonCount");
+    const popupTitle = document.getElementById("popupTitle");
+
+    // Form elements
+    const actionType = document.getElementById("actionType");
+    const btnLabel = document.getElementById("btnLabel");
+    const btnValue = document.getElementById("btnValue");
+
+    // Event Listeners
+    btnAdd.onclick = () => openPopup();
+    popupClose.onclick = () => closePopup();
+    btnSave.onclick = () => saveButton();
+    btnDelete.onclick = () => deleteButton();
+    btnDone.onclick = () => sendToBot();
+
+    // Đóng popup khi click bên ngoài
+    popup.onclick = (e) => {
+      if (e.target === popup) closePopup();
     };
 
-    document.getElementById("popupClose").onclick = function () {
-      document.getElementById("popup").classList.add("hidden");
+    function openPopup(index = -1) {
+      editingIndex = index;
+      
+      if (index >= 0) {
+        // Chỉnh sửa nút existing
+        popupTitle.textContent = "Chỉnh sửa nút";
+        btnLabel.value = buttons[index].title;
+        btnValue.value = buttons[index].link;
+        btnDelete.style.display = "block";
+      } else {
+        // Thêm nút mới
+        popupTitle.textContent = "Thêm nút mới";
+        btnLabel.value = "";
+        btnValue.value = "";
+        btnDelete.style.display = "none";
+      }
+      
+      popup.classList.remove("hidden");
+      btnLabel.focus();
+    }
+
+    function closePopup() {
+      popup.classList.add("hidden");
+      editingIndex = -1;
+    }
+
+    function saveButton() {
+      const title = btnLabel.value.trim();
+      const link = btnValue.value.trim();
+
+      if (!title) {
+        alert("Vui lòng nhập tên nút");
+        btnLabel.focus();
+        return;
+      }
+
+      if (!link) {
+        alert("Vui lòng nhập liên kết");
+        btnValue.focus();
+        return;
+      }
+
+      // Validate URL
+      if (!isValidUrl(link)) {
+        alert("Liên kết không hợp lệ. Vui lòng nhập URL đầy đủ (bắt đầu với http:// hoặc https://)");
+        btnValue.focus();
+        return;
+      }
+
+      const buttonData = {
+        type: actionType.value,
+        title: title,
+        link: link
+      };
+
+      if (editingIndex >= 0) {
+        // Cập nhật nút existing
+        buttons[editingIndex] = buttonData;
+      } else {
+        // Thêm nút mới
+        buttons.push(buttonData);
+      }
+
+      renderButtons();
+      closePopup();
+      tg.HapticFeedback.impactOccurred('light');
+    }
+
+    function deleteButton() {
+      if (editingIndex >= 0) {
+        buttons.splice(editingIndex, 1);
+        renderButtons();
+        closePopup();
+        tg.HapticFeedback.impactOccurred('medium');
+      }
+    }
+
+    function renderButtons() {
+      buttonCount.textContent = buttons.length;
+      
+      if (buttons.length === 0) {
+        emptyState.style.display = "block";
+        return;
+      }
+
+      emptyState.style.display = "none";
+      
+      buttonsList.innerHTML = buttons.map((btn, index) => `
+        <div class="button-item">
+          <div class="button-info">
+            <div class="button-label">${escapeHtml(btn.title)}</div>
+            <div class="button-url">${escapeHtml(btn.link)}</div>
+          </div>
+          <div class="button-actions">
+            <button class="btn btn-edit" onclick="openPopup(${index})">✏️</button>
+            <button class="btn btn-delete" onclick="deleteButtonAt(${index})">🗑️</button>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function deleteButtonAt(index) {
+      if (confirm('Bạn có chắc muốn xóa nút này?')) {
+        buttons.splice(index, 1);
+        renderButtons();
+        tg.HapticFeedback.impactOccurred('medium');
+      }
+    }
+
+    function sendToBot() {
+      if (buttons.length === 0) {
+        alert("Vui lòng thêm ít nhất 1 nút");
+        return;
+      }
+
+      // Gửi dữ liệu về bot Telegram
+      try {
+        tg.sendData(JSON.stringify(buttons));
+        tg.close();
+      } catch (error) {
+        console.error('Lỗi khi gửi dữ liệu:', error);
+        alert('Có lỗi xảy ra khi gửi dữ liệu về bot');
+      }
+    }
+
+    function isValidUrl(string) {
+      try {
+        new URL(string);
+        return string.startsWith('http://') || string.startsWith('https://');
+      } catch (_) {
+        return false;
+      }
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+
+    // Khởi tạo
+    renderButtons();
+
+    // Hiển thị nút main của Telegram
+    tg.MainButton.setText("✅ Hoàn tất");
+    tg.MainButton.onClick(() => sendToBot());
+    
+    // Cập nhật main button khi có thay đổi
+    const updateMainButton = () => {
+      if (buttons.length > 0) {
+        tg.MainButton.setText(`✅ Hoàn tất (${buttons.length})`);
+        tg.MainButton.show();
+      } else {
+        tg.MainButton.hide();
+      }
     };
+
+    // Override renderButtons để cập nhật main button
+    const originalRenderButtons = renderButtons;
+    renderButtons = function() {
+      originalRenderButtons();
+      updateMainButton();
+    };
+
+    updateMainButton();
   </script>
 </body>
 </html>

@@ -15,7 +15,6 @@
       display: flex;
       flex-direction: column;
       height: 100vh;
-      justify-content: space-between;
     }
 
     .header {
@@ -29,6 +28,7 @@
       flex: 1;
       padding: 16px;
       overflow-y: auto;
+      padding-bottom: 20px;
     }
 
     .add-section {
@@ -71,12 +71,6 @@
       gap: 8px;
     }
 
-    footer {
-      padding: 10px;
-      background: #ffffff;
-      border-top: 1px solid #ccc;
-    }
-
     .btn {
       padding: 10px 18px;
       border: none;
@@ -89,12 +83,6 @@
     .btn-add {
       background-color: #e3f2fd;
       color: #007aff;
-    }
-
-    .btn-done {
-      width: 100%;
-      background-color: #28a745;
-      color: white;
     }
 
     .btn-edit {
@@ -185,6 +173,19 @@
       color: #666;
       margin-top: 40px;
     }
+
+    .status {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(0,0,0,0.8);
+      color: white;
+      padding: 20px;
+      border-radius: 8px;
+      z-index: 1000;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -204,10 +205,6 @@
         </div>
       </div>
     </main>
-
-    <footer>
-      <button id="btnDone" class="btn btn-done">✅ Hoàn tất (<span id="buttonCount">0</span>)</button>
-    </footer>
   </div>
 
   <div id="popup" class="popup hidden">
@@ -236,6 +233,10 @@
     </div>
   </div>
 
+  <div id="status" class="status">
+    Đang gửi dữ liệu...
+  </div>
+
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
   <script>
     // Khởi tạo Telegram WebApp
@@ -248,15 +249,14 @@
 
     // DOM elements
     const btnAdd = document.getElementById("btnAdd");
-    const btnDone = document.getElementById("btnDone");
     const popup = document.getElementById("popup");
     const popupClose = document.getElementById("popupClose");
     const btnSave = document.getElementById("btnSave");
     const btnDelete = document.getElementById("btnDelete");
     const buttonsList = document.getElementById("buttonsList");
     const emptyState = document.getElementById("emptyState");
-    const buttonCount = document.getElementById("buttonCount");
     const popupTitle = document.getElementById("popupTitle");
+    const status = document.getElementById("status");
 
     // Form elements
     const actionType = document.getElementById("actionType");
@@ -268,7 +268,6 @@
     popupClose.onclick = () => closePopup();
     btnSave.onclick = () => saveButton();
     btnDelete.onclick = () => deleteButton();
-    btnDone.onclick = () => sendToBot();
 
     // Đóng popup khi click bên ngoài
     popup.onclick = (e) => {
@@ -340,7 +339,9 @@
 
       renderButtons();
       closePopup();
-      tg.HapticFeedback.impactOccurred('light');
+      if (tg.HapticFeedback) {
+        tg.HapticFeedback.impactOccurred('light');
+      }
     }
 
     function deleteButton() {
@@ -348,55 +349,78 @@
         buttons.splice(editingIndex, 1);
         renderButtons();
         closePopup();
-        tg.HapticFeedback.impactOccurred('medium');
+        if (tg.HapticFeedback) {
+          tg.HapticFeedback.impactOccurred('medium');
+        }
       }
     }
 
     function renderButtons() {
-      buttonCount.textContent = buttons.length;
-      
       if (buttons.length === 0) {
         emptyState.style.display = "block";
-        return;
+        buttonsList.innerHTML = '';
+        buttonsList.appendChild(emptyState);
+      } else {
+        emptyState.style.display = "none";
+        
+        buttonsList.innerHTML = buttons.map((btn, index) => `
+          <div class="button-item">
+            <div class="button-info">
+              <div class="button-label">${escapeHtml(btn.title)}</div>
+              <div class="button-url">${escapeHtml(btn.link)}</div>
+            </div>
+            <div class="button-actions">
+              <button class="btn btn-edit" onclick="openPopup(${index})">✏️</button>
+              <button class="btn btn-delete" onclick="deleteButtonAt(${index})">🗑️</button>
+            </div>
+          </div>
+        `).join('');
       }
-
-      emptyState.style.display = "none";
       
-      buttonsList.innerHTML = buttons.map((btn, index) => `
-        <div class="button-item">
-          <div class="button-info">
-            <div class="button-label">${escapeHtml(btn.title)}</div>
-            <div class="button-url">${escapeHtml(btn.link)}</div>
-          </div>
-          <div class="button-actions">
-            <button class="btn btn-edit" onclick="openPopup(${index})">✏️</button>
-            <button class="btn btn-delete" onclick="deleteButtonAt(${index})">🗑️</button>
-          </div>
-        </div>
-      `).join('');
+      updateMainButton();
     }
 
     function deleteButtonAt(index) {
       if (confirm('Bạn có chắc muốn xóa nút này?')) {
         buttons.splice(index, 1);
         renderButtons();
-        tg.HapticFeedback.impactOccurred('medium');
+        if (tg.HapticFeedback) {
+          tg.HapticFeedback.impactOccurred('medium');
+        }
       }
     }
 
     function sendToBot() {
       if (buttons.length === 0) {
-        alert("Vui lòng thêm ít nhất 1 nút");
+        tg.showAlert("Vui lòng thêm ít nhất 1 nút");
         return;
       }
 
+      // Hiển thị loading
+      status.style.display = "block";
+      
+      // Chuyển đổi format cho bot
+      const formattedButtons = buttons.map(btn => ({
+        text: btn.title,
+        url: btn.link
+      }));
+
+      console.log('Sending buttons to bot:', formattedButtons);
+
       // Gửi dữ liệu về bot Telegram
       try {
-        tg.sendData(JSON.stringify(buttons));
-        tg.close();
+        tg.sendData(JSON.stringify(formattedButtons));
+        
+        // Đợi một chút rồi đóng
+        setTimeout(() => {
+          status.style.display = "none";
+          tg.close();
+        }, 500);
+        
       } catch (error) {
         console.error('Lỗi khi gửi dữ liệu:', error);
-        alert('Có lỗi xảy ra khi gửi dữ liệu về bot');
+        status.style.display = "none";
+        tg.showAlert('Có lỗi xảy ra khi gửi dữ liệu về bot');
       }
     }
 
@@ -415,31 +439,26 @@
       return div.innerHTML;
     }
 
-    // Khởi tạo
-    renderButtons();
-
-    // Hiển thị nút main của Telegram
-    tg.MainButton.setText("✅ Hoàn tất");
-    tg.MainButton.onClick(() => sendToBot());
-    
-    // Cập nhật main button khi có thay đổi
-    const updateMainButton = () => {
+    // Cập nhật main button
+    function updateMainButton() {
       if (buttons.length > 0) {
-        tg.MainButton.setText(`✅ Hoàn tất (${buttons.length})`);
+        tg.MainButton.setText(`✅ Hoàn tất (${buttons.length} nút)`);
         tg.MainButton.show();
+        tg.MainButton.enable();
       } else {
         tg.MainButton.hide();
       }
-    };
+    }
 
-    // Override renderButtons để cập nhật main button
-    const originalRenderButtons = renderButtons;
-    renderButtons = function() {
-      originalRenderButtons();
-      updateMainButton();
-    };
+    // Khởi tạo
+    renderButtons();
 
+    // Thiết lập MainButton
+    tg.MainButton.onClick(sendToBot);
     updateMainButton();
+
+    // Sẵn sàng
+    tg.ready();
   </script>
 </body>
 </html>

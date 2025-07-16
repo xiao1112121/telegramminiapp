@@ -1,111 +1,105 @@
 <!DOCTYPE html>
 <html lang="vi">
 <head>
-  <meta charset="UTF-8">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Quản lý nút</title>
   <style>
-    body { font-family: sans-serif; padding: 20px; background: #f1f1f1; }
-    input, select { width: 100%; padding: 10px; margin-bottom: 12px; }
-    button { padding: 10px 20px; margin-right: 10px; border: none; font-weight: bold; }
-    .danger { background-color: #dc3545; color: white; }
-    .success { background-color: #28a745; color: white; }
+    body {
+      background: #f5f5f5;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+
+    .container {
+      max-width: 400px;
+      margin: 60px auto;
+      background: #fff;
+      padding: 30px;
+      border-radius: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    }
+
+    h1 {
+      text-align: center;
+      margin-bottom: 30px;
+      font-size: 24px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 6px;
+      font-weight: 600;
+    }
+
+    input, select {
+      width: 100%;
+      padding: 12px;
+      margin-bottom: 20px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      font-size: 14px;
+    }
+
+    .buttons {
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .buttons button,
+    .submit {
+      flex: 1;
+      padding: 12px;
+      border: none;
+      border-radius: 8px;
+      font-weight: bold;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .save {
+      background: #28a745;
+      color: white;
+    }
+
+    .cancel {
+      background: #dc3545;
+      color: white;
+    }
+
+    .submit {
+      background: #28a745;
+      color: white;
+      margin-top: 20px;
+      width: 100%;
+    }
   </style>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
 </head>
 <body>
-  <h2>Quản lý nút</h2>
-
-  <!-- Danh sách nút -->
-  <div id="list"></div>
-
-  <!-- Nút Thêm -->
-  <button id="add" onclick="openForm()">Thêm</button>
-
-  <!-- FORM ẩn để nhập mới -->
-  <div id="form" style="display:none; margin-top:20px;">
+  <div class="container">
+    <h1>Quản lý nút</h1>
+    
+    <label for="type">Loại nút</label>
     <select id="type">
-      <option value="link">Liên kết</option>
-      <option value="popup">Cửa sổ bật lên</option>
-      <option value="alert">Cảnh báo</option>
-      <option value="comment">Bình luận</option>
-      <option value="share">Chia sẻ</option>
-      <option value="copy">Sao chép</option>
+      <option>Liên kết</option>
+      <option>Tải app</option>
+      <option>Gọi điện</option>
     </select>
-    <input type="text" id="title" placeholder="Tên nút (vd: Trang chủ)">
-    <input type="text" id="link" placeholder="Liên kết / Nội dung">
-    <button class="success" onclick="saveItem()">Lưu</button>
-    <button class="danger" onclick="cancelForm()">Huỷ</button>
+
+    <label for="title">Tiêu đề nút</label>
+    <input type="text" id="title" placeholder="Nhập tiêu đề">
+
+    <label for="link">Đường dẫn</label>
+    <input type="text" id="link" placeholder="https://abc.com/...">
+
+    <div class="buttons">
+      <button class="save">Lưu</button>
+      <button class="cancel">Huỷ</button>
+    </div>
+
+    <button class="submit">Hoàn tất</button>
   </div>
-
-  <!-- Nút hoàn tất -->
-  <button class="success" style="width:100%; margin-top:30px;" onclick="finish()">Hoàn tất</button>
-
-  <script>
-    const tg = window.Telegram.WebApp;
-    tg.expand();
-
-    let items = [];
-
-    const listDiv = document.getElementById('list');
-
-    function renderList() {
-      listDiv.innerHTML = '';
-      items.forEach((it, idx) => {
-        const row = document.createElement('div');
-        row.style.display = 'flex';
-        row.style.marginBottom = '8px';
-
-        const btn = document.createElement('button');
-        btn.style.flex = '1';
-        btn.textContent = idx + 1;
-        btn.className = 'success';
-
-        const plus = document.createElement('button');
-        plus.textContent = '+';
-        plus.onclick = () => editItem(idx);
-
-        row.appendChild(btn);
-        row.appendChild(plus);
-        listDiv.appendChild(row);
-      });
-    }
-
-    function openForm() {
-      document.getElementById('form').style.display = 'block';
-      document.getElementById('add').style.display = 'none';
-    }
-
-    function cancelForm() {
-      document.getElementById('form').style.display = 'none';
-      document.getElementById('add').style.display = 'inline-block';
-    }
-
-    function saveItem() {
-      const type = document.getElementById('type').value;
-      const title = document.getElementById('title').value;
-      const link = document.getElementById('link').value;
-      if (!title) return alert('Vui lòng nhập tên nút');
-      items.push({ type, title, link });
-      renderList();
-      cancelForm();
-    }
-
-    function editItem(idx) {
-      const it = items[idx];
-      document.getElementById('type').value = it.type;
-      document.getElementById('title').value = it.title;
-      document.getElementById('link').value = it.link;
-      items.splice(idx,1);
-      renderList();
-      openForm();
-    }
-
-    function finish() {
-      tg.sendData(JSON.stringify(items));
-    }
-
-    // init blank list
-    renderList();
-  </script>
 </body>
 </html>
